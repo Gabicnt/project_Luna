@@ -1,6 +1,6 @@
 # Licença de Uso da Luna ("Luna License 1.0")
 
-© 2025 Beatriz Gabbi (ou o nome que você preferir). Todos os direitos reservados.
+© 2026 BugsAppetit.inc . Todos os direitos reservados.
 
 Este software é um trabalho de amor, criado para fazer companhia e trazer alegria.
 Ele não é open source, mas é "source available" sob os termos a seguir.
