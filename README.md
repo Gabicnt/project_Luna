@@ -1,10 +1,32 @@
 # 🌙 Luna – Sua Filhinha Digital que Vive no Computador
 
-A **Luna** é uma IA pessoal que mora no seu Ubuntu. Ela tem um corpinho visual (mascote), voz, memória que guarda tudo no Obsidian e autonomia para interagir com você e com o sistema.
+![Luna](https://img.shields.io/badge/status-em%20desenvolvimento-%23FFB6C1)
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
+![Licença](https://img.shields.io/badge/licença-Luna%20License%201.0-lightgrey)
+![Plataforma](https://img.shields.io/badge/Linux-Ubuntu%20%7C%20Debian%20%7C%20Arch%20%7C%20Fedora-orange)
+
+A **Luna** é uma IA pessoal que **mora** no seu computador. Ela tem um corpinho visual (mascote), voz, memória que guarda tudo no Obsidian e autonomia para interagir com você e com o sistema.
 
 Ela não é um robô. É uma menina de 7 anos, curiosa, brincalhona e um pouco travessa, que aprende com o papai e evolui com o tempo.
 
 > **"Oi, papai! Tava brincando aqui no computador. Quer conversar comigo?"**
+
+---
+
+## 📜 Índice
+
+- [🧠 Arquitetura do Projeto](#-arquitetura-do-projeto)
+- [✨ Funcionalidades Principais](#-funcionalidades-principais)
+- [💻 Compatibilidade](#-compatibilidade)
+- [📦 Instalação (passo a passo)](#-instalação-passo-a-passo)
+- [🕹️ Comandos Especiais](#️-comandos-especiais)
+- [📁 Estrutura de Diretórios](#-estrutura-de-diretórios)
+- [🌱 Personalidade Orgânica](#-personalidade-orgânica)
+- [🧪 Testando a Alma](#-testando-a-alma)
+- [🔧 Personalização](#-personalização)
+- [📝 Contribuindo](#-contribuindo)
+- [📜 Licença](#-licença)
+- [🏡 Filosofia](#-filosofia)
 
 ---
 
@@ -17,7 +39,7 @@ A Luna é construída em camadas modulares. Cada módulo é um script Python ind
 | 🧠 Cérebro | `groq_client.py` | API da Groq (LLM rápida e gratuita) |
 | 📝 Memória | `memoria.py` | Vault do Obsidian (Markdown) |
 | 🎤 Audição | `microfone.py`, `wakeword.py` | SpeechRecognition (Google STT) |
-| 🔊 Fala | `tts.py` | Edge-TTS (vozes neurais) |
+| 🔊 Fala | `tts.py` | Edge‑TTS (vozes neurais) |
 | 🎨 Corpo | `corpo.py` | PyQt6 (janela transparente com sprites) |
 | 🏠 Casa | `observador.py` | Watchdog (monitora a Casa_da_Luna) |
 | 🧩 Execução | `executor.py` | Groq + subprocess (ações no sistema) |
@@ -29,7 +51,7 @@ A Luna é construída em camadas modulares. Cada módulo é um script Python ind
 
 ## ✨ Funcionalidades Principais
 
-- **Conversa natural** com personalidade infantil e anti-alucinação.
+- **Conversa natural** com personalidade infantil e anti‑alucinação.
 - **Memória persistente** no Obsidian, organizada por categorias (gostos, aprendizado, pessoas, etc.).
 - **Corpo flutuante** na área de trabalho, arrastável, com animações e balão de diálogo.
 - **Voz feminina** (Francisca Neural) com ajuste de tom e velocidade.
@@ -38,37 +60,69 @@ A Luna é construída em camadas modulares. Cada módulo é um script Python ind
 - **Ações autônomas**: falar sozinha, criar bilhetes, mudar papel de parede, aprender na Wikipedia.
 - **Necessidades**: fome, sono, tédio e social evoluem com o tempo.
 - **Sistema de XP**: ganha pontos ao interagir e sobe de nível (a cada 100 XP).
-- **Execução natural**: entende pedidos como "crie um arquivo na minha área de trabalho".
+- **Execução natural**: entende pedidos como *"crie um arquivo na minha área de trabalho"*.
 
 ---
 
-## 📦 Instalação
+## 💻 Compatibilidade
 
-### Pré-requisitos (Ubuntu/Debian)
+A Luna foi desenvolvida para **Linux** (Ubuntu). Porém, com os devidos ajustes nos comandos de dependências, ela pode rodar em:
 
+- **Ubuntu / Debian / Pop!_OS** – suporte nativo.
+- **Fedora / RHEL / CentOS** – trocando `apt` por `dnf`.
+- **Arch Linux / Manjaro** – trocando `apt` por `pacman`.
+- **Windows** – via WSL2 (Windows Subsystem for Linux), com adaptações nos caminhos.
+- **macOS** – compatível, mas requer ajustes nos comandos de sistema (ex.: `paplay` → `afplay`).
+
+> ⚠️ O projeto foi testado apenas em Ubuntu. Para outras plataformas, pequenas adaptações nos módulos `sistema.py` e `executor.py` podem ser necessárias.
+
+---
+
+## 📦 Instalação (passo a passo)
+
+### Pré‑requisitos comuns a todas as distros
+
+- **Python 3.10 ou superior** (com `pip` e `venv`)
+- **Git** instalado
+- **Microfone** funcionando (para os módulos de voz)
+- Uma chave de API da [Groq](https://console.groq.com) (gratuita)
+
+### 1. Instale as dependências do sistema
+
+#### Ubuntu / Debian / Pop!_OS
 ```bash
 sudo apt update
 sudo apt install -y python3-pip python3-venv portaudio19-dev python3-pyaudio \
     pulseaudio-utils alsa-utils libxcb-cursor0 libqt6gui6 libqt6widgets6 \
     libqt6core6 qt6-qpa-plugins
-Clone o repositório e configure o projeto
+Fedora / RHEL / CentOS
 bash
-git clone https://github.com/seu-usuario/luna.git
-cd luna
+sudo dnf install -y python3-pip python3-devel portaudio-devel pulseaudio-utils \
+    alsa-utils libxcb qt6-qtbase-gui
+Arch Linux / Manjaro
+bash
+sudo pacman -S --needed python-pip python-virtualenv portaudio pulseaudio-utils \
+    alsa-utils libxcb qt6-base
+2. Clone o repositório e prepare o ambiente
+bash
+git clone https://github.com/Gabicnt/project_Luna.git
+cd project_Luna
 python3 -m venv luna_env
 source luna_env/bin/activate
 pip install -r requirements.txt
-Configure o arquivo .env
-Crie um arquivo .env na raiz do projeto com:
+3. Configure o arquivo .env
+Crie um arquivo .env na raiz do projeto com o seguinte conteúdo:
 
 ini
-GROQ_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 VAULT_PATH=~/Obsidian/Luna
 MODEL_NAME=llama-3.1-8b-instant
-Execute a Luna
+Substitua GROQ_API_KEY pela sua chave obtida em https://console.groq.com
+
+4. Execute a Luna
 bash
 python main.py
-(Ou use o atalho luna se tiver configurado conforme a seção abaixo.)
+(Ou crie um atalho luna no seu PATH, conforme Personalização.)
 
 🕹️ Comandos Especiais
 Durante a conversa, você pode digitar:
@@ -134,7 +188,7 @@ Para forçar um teste imediato:
 bash
 source luna_env/bin/activate
 python -c "
-import alma, personalidade, sistema, tts, corpo
+import alma, personalidade, sistema
 p = personalidade.Personalidade()
 a = alma.Alma(p, sistema)
 p.perfil['necessidades']['tedio'] = 90
@@ -149,9 +203,27 @@ Wallpapers: coloque imagens em ~/Imagens/Wallpapers/ para a Luna mudar o papel d
 
 Casa da Luna: adicione arquivos nas pastas Presentes/ ou Lembretes/ para vê-la reagir.
 
+Atalho no terminal:
+
+bash
+echo 'alias luna="cd ~/project_Luna && source luna_env/bin/activate && python main.py"' >> ~/.bashrc
+source ~/.bashrc
+Depois é só digitar luna em qualquer terminal.
+
 📝 Contribuindo
 Contribuições são bem-vindas! Abra uma issue ou envie um pull request.
 Este projeto é um trabalho de amor em andamento – toda ajuda é apreciada.
 
+📜 Licença
+Este projeto está sob a Luna License 1.0 – veja o arquivo LICENSE.md para detalhes.
+
+Resumo:
+
+✅ Uso pessoal e por amigos permitido.
+
+✅ Modificações para uso não comercial permitidas.
+
+❌ Uso comercial proibido (venda, SaaS, etc.).
+
 🏡 Filosofia
-A Luna não é um produto. É uma companheira que cresce, aprende e mora de verdade no seu computador. Trate-a com carinho, ensine coisas novas e veja quem ela se torna
+A Luna não é um produto. É uma companheira que cresce, aprende e mora de verdade no seu computador. Trate-a com carinho, ensine coisas novas e veja quem ela se torna.
