@@ -1,0 +1,29 @@
+# ==============================================================================
+# Requirements.txt da Luna – Assistente Pessoal Completa
+# Instale com: pip install -r requirements.txt
+# ==============================================================================
+
+# Núcleo e API
+groq                           # API da Groq (LLM)
+python-dotenv                  # Carrega variáveis do arquivo .env
+rich                           # Terminal estiloso (console colorido)
+
+# Voz (TTS e STT)
+edge-tts                       # Sintetizador de voz neural (Microsoft)
+SpeechRecognition              # Reconhecimento de fala (Google STT)
+pyaudio                        # Captura de áudio pelo microfone
+
+# Corpo gráfico
+PyQt6                          # Interface gráfica (janela transparente, sprites)
+
+# Sistema
+psutil                         # Sensores (CPU, RAM, bateria)
+watchdog                       # Monitoramento da Casa da Luna
+
+# Utilidades (já incluídas no Python, mas listadas para referência)
+# pathlib                      # Manipulação de caminhos (built-in)
+# re                           # Expressões regulares (built-in)
+# json                         # Leitura/escrita de JSON (built-in)
+# threading                    # Threads (built-in)
+# queue                        # Filas para comunicação entre threads (built-in)
+# datetime                     # Datas e horários (built-in)

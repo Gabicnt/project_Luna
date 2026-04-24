@@ -1,0 +1,11 @@
+luna_env/
+__pycache__/
+*.pyc
+.env
+/tmp/
+*.wav
+*.mp3
+*.onnx
+*.onnx.json
+voices/
+sprites/
