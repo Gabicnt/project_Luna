@@ -103,6 +103,7 @@ Arch Linux / Manjaro
 bash
 sudo pacman -S --needed python-pip python-virtualenv portaudio pulseaudio-utils \
     alsa-utils libxcb qt6-base
+
 2. Clone o repositório e prepare o ambiente
 bash
 git clone https://github.com/Gabicnt/project_Luna.git
