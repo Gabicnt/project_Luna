@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
-Corpo Gráfico da Luna – Janela transparente com mascote animado (sprites PNG)
-e balão de diálogo. Suporte a arrasto, gravidade e menu de contexto.
+Corpo Gráfico da Luna – Janela transparente com mascote animado.
+Suporte a caminhada autônoma, seguir mouse, gravidade e balão de diálogo.
 """
 
 import sys
 import os
+import random
 from PyQt6.QtWidgets import QApplication, QLabel, QWidget, QMenu
 from PyQt6.QtCore import (
     Qt, QTimer, QPoint, QPropertyAnimation, QEasingCurve, pyqtSignal
@@ -22,12 +23,12 @@ class Estado(Enum):
     FELIZ = "feliz"
     DORMINDO = "dormindo"
     TRISTE = "triste"
+    WALKING = "walking"
 
 
 class LunaCorpo(QWidget):
     """Janela flutuante que representa o corpo da Luna na área de trabalho."""
 
-    # Sinais emitidos para o main.py
     clique_simples = pyqtSignal()
     clique_duplo = pyqtSignal()
 
@@ -39,9 +40,14 @@ class LunaCorpo(QWidget):
         self.drag_pos = QPoint()
         self.sprites = {}
         self.usar_sprites = False
-        self.modo_balão = True          # True = balão, False = fala por voz
+        self.modo_balão = True
+        self.direcao = 1           # 1 = direita, -1 = esquerda (para flipar sprites)
+        self.movimento_timer = QTimer()
+        self.movimento_timer.timeout.connect(self._andar_aleatoriamente)
+        self.movimento_timer.setInterval(random.randint(3000, 10000))
+        self.movimento_animacao = None
 
-        # ---- configurações da janela ----
+        # ---- janela ----
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint |
             Qt.WindowType.WindowStaysOnTopHint |
@@ -50,12 +56,12 @@ class LunaCorpo(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setFixedSize(250, 280)
 
-        # ---- label do sprite (personagem) ----
+        # ---- label do sprite ----
         self.label = QLabel(self)
         self.label.setGeometry(25, 80, 200, 200)
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # ---- label do balão de fala ----
+        # ---- balão ----
         self.balao = QLabel(self)
         self.balao.setGeometry(10, 5, 230, 70)
         self.balao.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -73,25 +79,27 @@ class LunaCorpo(QWidget):
         """)
         self.balao.setVisible(False)
 
-        # ---- timer da animação ----
+        # ---- timer da animação de sprite ----
         self.timer = QTimer()
         self.timer.timeout.connect(self._proximo_frame)
         self.timer.start(400)
 
-        # ---- menu de contexto (botão direito) ----
+        # ---- menu de contexto ----
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self._menu_contexto)
 
-        # ---- carrega sprites PNG, se existirem ----
+        # ---- carrega sprites ----
         self._carregar_sprites()
         self._posicionar_canto()
         self._desenhar_estado()
+
+        # inicia movimento autônomo
+        self.movimento_timer.start()
         self.show()
 
     # ========================================================================
     #  SPRITES
     # ========================================================================
-
     def _carregar_sprites(self):
         base = os.path.join(os.path.dirname(__file__), "sprites")
         if not os.path.exists(base):
@@ -118,9 +126,49 @@ class LunaCorpo(QWidget):
             print("🎨 Nenhum sprite PNG. Usando desenhos padrão.")
 
     # ========================================================================
+    #  MOVIMENTO AUTÔNOMO
+    # ========================================================================
+    def _andar_aleatoriamente(self):
+        """Move a Luna para uma posição aleatória na tela."""
+        # Evita andar se estiver dormindo ou sendo arrastada
+        if self.estado_atual == Estado.DORMINDO or self.arrastando:
+            return
+
+        # 30% de chance de não andar
+        if random.random() < 0.3:
+            return
+
+        self.set_estado(Estado.WALKING)
+
+        screen = QApplication.primaryScreen().geometry()
+        margem = 50
+        novo_x = random.randint(margem, screen.width() - self.width() - margem)
+        novo_y = random.randint(margem, screen.height() - self.height() - margem)
+
+        # Atualiza direção
+        if novo_x < self.x():
+            self.direcao = -1  # esquerda
+        else:
+            self.direcao = 1   # direita
+
+        self._mover_para(QPoint(novo_x, novo_y))
+
+    def _mover_para(self, destino: QPoint):
+        """Anima a janela até o ponto destino."""
+        if self.movimento_animacao and self.movimento_animacao.state() == QPropertyAnimation.State.Running:
+            self.movimento_animacao.stop()
+
+        self.movimento_animacao = QPropertyAnimation(self, b"pos")
+        self.movimento_animacao.setDuration(1000)
+        self.movimento_animacao.setStartValue(self.pos())
+        self.movimento_animacao.setEndValue(destino)
+        self.movimento_animacao.setEasingCurve(QEasingCurve.Type.InOutQuad)
+        self.movimento_animacao.finished.connect(lambda: self.set_estado(Estado.IDLE))
+        self.movimento_animacao.start()
+
+    # ========================================================================
     #  POSICIONAMENTO E REDERIZAÇÃO
     # ========================================================================
-
     def _posicionar_canto(self):
         screen = QApplication.primaryScreen().geometry()
         x = screen.width() - 270
@@ -135,12 +183,12 @@ class LunaCorpo(QWidget):
         if self.usar_sprites and self.estado_atual in self.sprites:
             frames = self.sprites[self.estado_atual]
             frame = frames[self.frame_idx % len(frames)]
+            # Espelha se andando para esquerda
+            if self.estado_atual == Estado.WALKING and self.direcao == -1:
+                frame = frame.mirrored(True, False)
             self.label.setPixmap(
-                frame.scaled(
-                    200, 200,
-                    Qt.AspectRatioMode.KeepAspectRatio,
-                    Qt.TransformationMode.SmoothTransformation
-                )
+                frame.scaled(200, 200, Qt.AspectRatioMode.KeepAspectRatio,
+                             Qt.TransformationMode.SmoothTransformation)
             )
         else:
             pixmap = QPixmap(200, 200)
@@ -151,10 +199,6 @@ class LunaCorpo(QWidget):
             painter.end()
             self.label.setPixmap(pixmap)
 
-    # ========================================================================
-    #  FALLBACK – DESENHOS PADRÃO
-    # ========================================================================
-
     def _desenhar_fallback(self, p):
         estados = {
             Estado.IDLE: self._desenhar_idle,
@@ -164,6 +208,7 @@ class LunaCorpo(QWidget):
             Estado.FELIZ: self._desenhar_feliz,
             Estado.DORMINDO: self._desenhar_dormindo,
             Estado.TRISTE: self._desenhar_triste,
+            Estado.WALKING: self._desenhar_walking,
         }
         desenho = estados.get(self.estado_atual, self._desenhar_idle)
         desenho(p)
@@ -184,6 +229,17 @@ class LunaCorpo(QWidget):
         self._base_corpo(p)
         p.setPen(QColor(0, 0, 0))
         p.drawArc(75, 110, 50, 20, 0, -180 * 16)
+
+    def _desenhar_walking(self, p):
+        self._base_corpo(p)
+        # Perninhas
+        p.setPen(QColor(0, 0, 0))
+        if self.frame_idx % 2 == 0:
+            p.drawLine(75, 160, 60, 180)
+            p.drawLine(125, 160, 140, 180)
+        else:
+            p.drawLine(75, 160, 90, 180)
+            p.drawLine(125, 160, 110, 180)
 
     def _desenhar_listening(self, p):
         self._base_corpo(p)
@@ -240,7 +296,6 @@ class LunaCorpo(QWidget):
     # ========================================================================
     #  MUDANÇA DE ESTADOS (API pública)
     # ========================================================================
-
     def set_estado(self, estado):
         if isinstance(estado, str):
             try:
@@ -257,11 +312,11 @@ class LunaCorpo(QWidget):
     def feliz(self):        self.set_estado(Estado.FELIZ)
     def dormir(self):       self.set_estado(Estado.DORMINDO)
     def triste(self):       self.set_estado(Estado.TRISTE)
+    def walking(self):      self.set_estado(Estado.WALKING)
 
     # ========================================================================
     #  BALÃO DE DIÁLOGO
     # ========================================================================
-
     def mostrar_balao(self, texto: str, duracao: int = 5000):
         texto_curto = texto[:150] + "..." if len(texto) > 150 else texto
         self.balao.setText(texto_curto)
@@ -283,7 +338,6 @@ class LunaCorpo(QWidget):
     # ========================================================================
     #  MENU DE CONTEXTO (botão direito)
     # ========================================================================
-
     def _menu_contexto(self, pos):
         menu = QMenu(self)
         menu.setStyleSheet("color: white; background-color: #333;")
@@ -307,6 +361,10 @@ class LunaCorpo(QWidget):
         acao_triste.triggered.connect(self.triste)
         menu.addAction(acao_triste)
 
+        acao_andar = QAction("🚶 Andar por aí", self)
+        acao_andar.triggered.connect(self._andar_aleatoriamente)
+        menu.addAction(acao_andar)
+
         menu.addSeparator()
 
         acao_fechar = QAction("❌ Fechar Luna", self)
@@ -316,14 +374,20 @@ class LunaCorpo(QWidget):
         menu.exec(self.mapToGlobal(pos))
 
     # ========================================================================
-    #  EVENTOS DE MOUSE (ARRASTO + GRAVIDADE)
+    #  EVENTOS DE MOUSE
     # ========================================================================
-
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             self.arrastando = True
             self.drag_pos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
             self.clique_simples.emit()
+            # Se clicou perto do centro, faz ela andar até o mouse
+            centro = self.geometry().center()
+            click = event.globalPosition().toPoint()
+            if (click - centro).manhattanLength() < 60:
+                self.set_estado(Estado.WALKING)
+                destino = click - QPoint(self.width()//2, self.height()//2)
+                self._mover_para(destino)
 
     def mouseMoveEvent(self, event):
         if self.arrastando:
@@ -332,7 +396,6 @@ class LunaCorpo(QWidget):
     def mouseReleaseEvent(self, event):
         if self.arrastando:
             self.arrastando = False
-            # Queda suave até o chão
             screen = QApplication.primaryScreen().geometry()
             final_y = screen.height() - self.height() - 10
             anim = QPropertyAnimation(self, b"pos")
@@ -346,17 +409,3 @@ class LunaCorpo(QWidget):
         self.clique_duplo.emit()
         self.feliz()
         self.mostrar_balao("Oi, papai! 😊", 3000)
-
-
-# ==============================================================================
-# Teste rápido
-# ==============================================================================
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    luna = LunaCorpo()
-    luna.mostrar_balao("Oi, papai! Testando o balão!", 4000)
-    QTimer.singleShot(2000, luna.listening)
-    QTimer.singleShot(4000, luna.thinking)
-    QTimer.singleShot(6000, luna.speaking)
-    QTimer.singleShot(8000, luna.feliz)
-    sys.exit(app.exec())

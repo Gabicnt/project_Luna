@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Luna - IA pessoal completa com personalidade orgânica, voz, corpo, casa, ações autônomas
-      e ALMA (autonomia, necessidades, XP, ações espontâneas).
+Luna - IA pessoal completa com personalidade orgânica, voz, corpo, casa,
+      ações autônomas e DUPLA VERIFICAÇÃO (análise de intenção + resposta).
 A detecção de pedidos de ação é FEITA NATURALMENTE, sem comandos especiais.
 Memória de curto prazo incluída para evitar perda de contexto.
 """
@@ -34,7 +34,7 @@ import observador
 import cerebro
 import personalidade
 import executor
-import alma                                 # Fase 5 – Autonomia e vida
+import alma
 
 # ==============================================================================
 # Silencia os irritantes avisos do ALSA/JACK (não afetam o funcionamento)
@@ -61,7 +61,7 @@ historico_conversa = []
 
 tts_engine = tts.TTSEngine(
     voice="pt-BR-FranciscaNeural",
-    pitch="+25Hz",
+    pitch="+30Hz",
     rate="+18%"
 )
 
@@ -75,7 +75,7 @@ casa_engine = None
 cerebro_engine = cerebro.CerebroOrganico()
 personalidade_engine = personalidade.Personalidade()
 executor_engine = executor.Executor()
-alma_engine = None                       # Será iniciada após o corpo gráfico
+alma_engine = None
 
 
 # ==============================================================================
@@ -186,35 +186,9 @@ def processar_comando_especial(comando: str):
 
 
 # ==============================================================================
-# Detecção orgânica de pedidos de ação
-# ==============================================================================
-def _parece_pedido_acao(texto: str) -> bool:
-    """Verifica se o texto parece um pedido de ação (criar, listar, apagar, etc.)."""
-    gatilhos = [
-        "criar", "cria", "crie", "faça", "fazer", "escrever", "escreva",
-        "listar", "lista", "liste", "mostrar", "mostra", "mostre",
-        "apagar", "apaga", "apague", "deletar", "delete", "remover", "remova",
-        "mover", "mova", "copiar", "copia", "copie",
-        "renomear", "renomeia", "executar", "execute", "rodar", "roda",
-        "abrir", "abra", "fechar", "feche",
-        "criar arquivo", "criar pasta", "criar diretório",
-        "salvar", "salve", "guardar", "guarde",
-        "limpar", "limpe", "organizar", "organize",
-        "baixar", "baixe", "download", "instalar", "instale",
-        "área de trabalho", "desktop", "documentos", "downloads"
-    ]
-    texto_lower = texto.lower()
-    for gatilho in gatilhos:
-        if gatilho in texto_lower:
-            return True
-    return False
-
-
-# ==============================================================================
 # Construção de contexto de curto prazo (últimas 5 trocas)
 # ==============================================================================
 def _obter_contexto_recente() -> str:
-    """Retorna as últimas falas da conversa para manter o contexto imediato."""
     if not historico_conversa:
         return ""
     recentes = historico_conversa[-6:]
@@ -222,7 +196,7 @@ def _obter_contexto_recente() -> str:
 
 
 # ==============================================================================
-# Análise da entrada e resposta
+# Análise da entrada e resposta (DUPLA VERIFICAÇÃO)
 # ==============================================================================
 def deve_salvar_memoria(mensagem_usuario: str, resposta_llm: str) -> bool:
     texto = mensagem_usuario.lower()
@@ -255,42 +229,50 @@ def processar_entrada(texto: str):
         return None
 
     # ========================================================================
-    # DETECÇÃO ORGÂNICA: se parece pedido de ação, usa o executor natural
+    # 1ª VERIFICAÇÃO: Análise de Intenção
     # ========================================================================
-    if _parece_pedido_acao(texto):
-        console.print("🔧 Deixa que eu faço isso pra você, papai...")
-        resultado_acao = executor_engine.executar_natural(texto)
+    console.print("🔍 Analisando...", style="dim")
+    intencao = executor_engine.analisar_intencao(texto)
+    tipo = intencao.get("tipo", "conversa")
+    resumo_acao = intencao.get("resumo", "")
+    resultado_acao = None
 
-        historico_conversa.append(f"Usuário: {texto}")
-        historico_conversa.append(f"Luna (ação): {resultado_acao}")
-
-        exibir_luna(resultado_acao)
-
-        if luna_corpo:
-            luna_corpo.speaking()
-            modo_fala = luna_corpo.get_modo_fala()
-            if modo_fala == "balão":
-                luna_corpo.mostrar_balao(resultado_acao, duracao=config.BALAO_DURACAO)
-                console.print("💬 Balão...", style="yellow")
-            if modo_fala == "voz":
-                console.print("🔊 Falando...", style="yellow")
-                tts_engine.falar(resultado_acao)
-            QTimer.singleShot(500, luna_corpo.idle)
+    if tipo != "conversa":
+        console.print(f"🎯 Intenção: {tipo} – {resumo_acao}")
+        # Executa a ação de acordo com o tipo
+        if tipo == "acao_lembrete":
+            if any(p in texto.lower() for p in ["ler", "o que preciso", "meus lembretes", "recados"]):
+                resultado_acao = executor_engine._ler_lembretes()
+            else:
+                resultado_acao = executor_engine.executar_natural(texto)
+        elif tipo == "acao_janela":
+            resultado_acao = executor_engine._executar_acao_janela(intencao)
+        elif tipo == "acao_web":
+            resultado_acao = executor_engine._abrir_navegador(intencao)
+        elif tipo == "acao_terminal":
+            resultado_acao = executor_engine._executar_terminal(intencao)
+        elif tipo == "acao_sistema":
+            resultado_acao = executor_engine._acao_sistema(intencao)
         else:
-            console.print("🔊 Falando...", style="yellow")
-            tts_engine.falar(resultado_acao)
+            # acao_arquivo ou outros – usa o executor natural
+            resultado_acao = executor_engine.executar_natural(texto)
 
-        personalidade_engine.adicionar_xp(2)
-        return resultado_acao
+        if resultado_acao:
+            console.print(f"⚡ Ação executada: {resultado_acao[:100]}...")
 
     # ========================================================================
-    # CONVERSA NORMAL (não é pedido de ação)
+    # 2ª VERIFICAÇÃO: Resposta da Luna (sempre ocorre)
     # ========================================================================
     personalidade_engine.registrar_interacao()
     historico_conversa.append(f"Usuário: {texto}")
 
     if luna_corpo:
         luna_corpo.thinking()
+
+    # Contexto adicional de ação
+    contexto_acao = ""
+    if resultado_acao:
+        contexto_acao = f"\n[RESULTADO DA AÇÃO]\n{resultado_acao}\n"
 
     prompt_base = personalidade_engine.gerar_prompt_base()
     contexto_mundo = personalidade_engine.gerar_contexto_mundo()
@@ -302,7 +284,8 @@ def processar_entrada(texto: str):
         prompt_base + "\n" +
         contexto_mundo + "\n" +
         "[CONTEXTO DA CONVERSA ATUAL]\n" + contexto_recente + "\n" +
-        "[SISTEMA] " + contexto_sis
+        "[SISTEMA] " + contexto_sis +
+        contexto_acao
     )
 
     mensagens = groq_client.montar_mensagens(
@@ -388,7 +371,6 @@ def main():
     casa_engine.iniciar()
     console.print("🏠 Casa da Luna monitorada!")
 
-    # Inicializa a Alma (autonomia, necessidades, ações espontâneas)
     alma_engine = alma.Alma(
         personalidade_engine=personalidade_engine,
         sistema_module=sistema,
